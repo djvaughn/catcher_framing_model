@@ -66,7 +66,7 @@ def _train_model(lf: LazyFrame) -> XGBClassifier:
         n_estimators=300,
         min_child_weight=100,
     )
-
+    model.fit(X_train, y_train)
     return model
 
 
