@@ -1,7 +1,8 @@
-from typing import TYPE_CHECKING
 from pathlib import Path
 import pickle
-from click import command, option, Path as click_path
+from typing import TYPE_CHECKING
+
+from click import Path as click_path, command, option
 from polars import Int64, col, min_horizontal, scan_csv
 from xgboost import XGBClassifier
 
