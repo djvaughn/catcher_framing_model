@@ -1,6 +1,6 @@
 from pathlib import Path
 import pickle
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from click import Path as click_path, command, option
 from polars import Int64, col, min_horizontal, scan_csv
@@ -10,8 +10,8 @@ if TYPE_CHECKING:
     from polars import LazyFrame
 
 # CONSTANTS
-PLATE_CENTER_WIDTH_FT = 0.708
-FEATURES = [
+PLATE_CENTER_WIDTH_FT: float = 0.708
+FEATURES: List[str] = [
     "PLATE_LOC_HEIGHT",
     "PLATE_LOC_SIDE",
     "TOP_ZONE",
@@ -24,7 +24,7 @@ FEATURES = [
     "VERT_APPROACH",
     "HORZ_APPROACH",
 ]
-GAME_YEARS = [2021, 2022]
+GAME_YEARS: List[int] = [2021, 2022]
 
 
 def _load_data(training_path_str: Path) -> LazyFrame:
