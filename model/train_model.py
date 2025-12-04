@@ -1,7 +1,7 @@
+from logging import INFO, basicConfig, getLogger
 from pathlib import Path
 import pickle
 from typing import List, TYPE_CHECKING
-from logging import INFO, getLogger, basicConfig
 
 from click import Path as click_path, command, option
 from polars import Float64, Int64, col, min_horizontal, scan_csv
