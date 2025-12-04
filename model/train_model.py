@@ -1,6 +1,7 @@
 from pathlib import Path
 import pickle
 from typing import List, TYPE_CHECKING
+from logging import INFO, getLogger, basicConfig
 
 from click import Path as click_path, command, option
 from polars import Float64, Int64, col, min_horizontal, scan_csv
@@ -26,6 +27,9 @@ FEATURES: List[str] = [
 ]
 GAME_YEARS: List[int] = [2021, 2022]
 
+basicConfig(level=INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = getLogger(__name__)
+
 
 def _load_data(training_path: Path) -> LazyFrame:
     """
@@ -41,6 +45,7 @@ def _load_data(training_path: Path) -> LazyFrame:
     LazyFrame
         Polars LazyFrame for lazy evaluation.
     """
+    logger.info(f"Loading data from {training_path}")
     return scan_csv(training_path)
 
 
@@ -66,6 +71,7 @@ def _feature_engineering(lf: LazyFrame) -> LazyFrame:
         - VERT_APPROACH: Vertical approach angle (degrees)
         - HORZ_APPROACH: Horizontal approach angle (degrees)
     """
+    logger.info("Engineering features")
     lf = lf.with_columns(
         col("PLATELOCHEIGHT").cast(Float64),
         col("PLATELOCSIDE").cast(Float64),
@@ -92,6 +98,7 @@ def _feature_engineering(lf: LazyFrame) -> LazyFrame:
         VERT_APPROACH=col("VERTAPPRANGLE"),
         HORZ_APPROACH=col("HORZAPPRANGLE"),
     )
+    logger.info(f"Engineered {len(FEATURES)} features")
     return lf
 
 
@@ -109,9 +116,13 @@ def _train_model(lf: LazyFrame) -> XGBClassifier:
     XGBClassifier
         Trained model for predicting called strike probability.
     """
+    logger.info(f"Filtering to training years: {GAME_YEARS}")
     train_lf = lf.filter(col("GAME_YEAR").is_in(GAME_YEARS))
     X_train = train_lf.select(FEATURES).collect().to_numpy()
     y_train = train_lf.select("IS_STRIKE").collect().to_numpy().ravel()
+
+    logger.info(f"Training on {len(X_train)} pitches")
+    logger.info(f"Strike rate: {y_train.mean():.3f}")
 
     model = XGBClassifier(
         objective="binary:logistic",
@@ -121,6 +132,7 @@ def _train_model(lf: LazyFrame) -> XGBClassifier:
         min_child_weight=100,
     )
     model.fit(X_train, y_train)
+    logger.info("Model training complete")
     return model
 
 
@@ -150,6 +162,7 @@ def main(input: Path, output: Path):
     output : Path
         Path where model pickle file will be saved.
     """
+    logger.info("Starting model training pipeline")
     lf = _load_data(input)
     lf = _feature_engineering(lf)
     lf = lf.drop_nulls(subset=FEATURES + ["IS_STRIKE"])
@@ -160,6 +173,7 @@ def main(input: Path, output: Path):
     }
     with output.open("wb") as f:
         pickle.dump(model_data, f)
+    logger.info(f"Model saved to {output}")
 
 
 if __name__ == "__main__":
