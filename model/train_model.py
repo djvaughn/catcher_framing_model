@@ -1,9 +1,9 @@
 from pathlib import Path
 import pickle
-from typing import TYPE_CHECKING, List
+from typing import List, TYPE_CHECKING
 
 from click import Path as click_path, command, option
-from polars import Int64, col, min_horizontal, scan_csv
+from polars import Float64, Int64, col, min_horizontal, scan_csv
 from xgboost import XGBClassifier
 
 if TYPE_CHECKING:
@@ -27,13 +27,13 @@ FEATURES: List[str] = [
 GAME_YEARS: List[int] = [2021, 2022]
 
 
-def _load_data(training_path_str: Path) -> LazyFrame:
+def _load_data(training_path: Path) -> LazyFrame:
     """
     Load training data as a Polars LazyFrame.
 
     Parameters
     ----------
-    training_path_str : Path
+    training_path : Path
         Path to the CSV file containing training data.
 
     Returns
@@ -41,8 +41,7 @@ def _load_data(training_path_str: Path) -> LazyFrame:
     LazyFrame
         Polars LazyFrame for lazy evaluation.
     """
-    training_data_path = Path(training_path_str)
-    return scan_csv(training_data_path)
+    return scan_csv(training_path)
 
 
 def _feature_engineering(lf: LazyFrame) -> LazyFrame:
@@ -68,6 +67,16 @@ def _feature_engineering(lf: LazyFrame) -> LazyFrame:
         - HORZ_APPROACH: Horizontal approach angle (degrees)
     """
     lf = lf.with_columns(
+        col("PLATELOCHEIGHT").cast(Float64),
+        col("PLATELOCSIDE").cast(Float64),
+        col("TOP_ZONE").cast(Float64),
+        col("BOT_ZONE").cast(Float64),
+        col("BALLS").cast(Int64),
+        col("STRIKES").cast(Int64),
+        col("VERTAPPRANGLE").cast(Float64),
+        col("HORZAPPRANGLE").cast(Float64),
+        col("GAME_YEAR").cast(Int64),
+    ).with_columns(
         IS_STRIKE=(col("PITCHCALL") == "StrikeCalled").cast(Int64),
         IN_ZONE=(
             (col("BOT_ZONE") <= col("PLATELOCHEIGHT"))
