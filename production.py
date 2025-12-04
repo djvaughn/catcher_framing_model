@@ -101,6 +101,26 @@ def _feature_engineering(lf: LazyFrame) -> LazyFrame:
 
 
 def _score_model(model_path: Path, audience_lf: LazyFrame) -> LazyFrame:
+    """
+    Load trained model and generate called strike probabilities.
+
+    Parameters
+    ----------
+    model_path : Path
+        Path to pickled model file.
+    audience_lf : LazyFrame
+        Feature-engineered pitch data to score.
+
+    Returns
+    -------
+    LazyFrame
+        Input data with CS_PROB column added (probability of called strike).
+
+    Raises
+    ------
+    FileNotFoundError
+        If model file does not exist at specified path.
+    """
     if not model_path.exists():
         raise FileNotFoundError(f"Model not found at {model_path}")
 
@@ -117,6 +137,23 @@ def _score_model(model_path: Path, audience_lf: LazyFrame) -> LazyFrame:
 
 
 def _pitch_level_data(scored_lf: LazyFrame, pitch_level_csv_path: Path):
+    """
+    Export pitch-level predictions to CSV.
+
+    Parameters
+    ----------
+    scored_lf : LazyFrame
+        Scored pitch data with CS_PROB column.
+    pitch_level_csv_path : Path
+        Output path for CSV file.
+
+    Notes
+    -----
+    Output columns:
+        - PITCH_ID: Unique pitch identifier
+        - IS_STRIKE: 1 if called strike, 0 otherwise
+        - CS_PROB: Model probability of called strike
+    """
     pitch_level_lf = scored_lf.select(
         [col("PITCH_ID"), col("IS_STRIKE"), col("CS_PROB")]
     )
@@ -124,6 +161,26 @@ def _pitch_level_data(scored_lf: LazyFrame, pitch_level_csv_path: Path):
 
 
 def _catcher_data(scored_lf: LazyFrame, catcher_csv_path: Path):
+    """
+    Aggregate framing metrics by catcher and year, export to CSV.
+
+    Parameters
+    ----------
+    scored_lf : LazyFrame
+        Scored pitch data with CS_PROB column.
+    catcher_csv_path : Path
+        Output path for CSV file.
+
+    Notes
+    -----
+    Output columns:
+        - catcher_id: Unique catcher identifier
+        - year: Season year
+        - opportunities: Total pitches received
+        - actual_cs: Actual called strikes
+        - cs_added: Called strikes above expected
+        - cs_added_per_100: Called strikes above expected per 100 opportunities
+    """
     catcher_lf = (
         scored_lf.group_by(["CATCHER_ID", "GAME_YEAR"])
         .agg(
@@ -156,6 +213,13 @@ def _catcher_data(scored_lf: LazyFrame, catcher_csv_path: Path):
 
 
 def main():
+    """
+    Apply catcher framing model to new data and export predictions.
+
+    Reads new_data.csv, generates predictions, and outputs:
+        - pitch_level_predictions.csv: Pitch-level called strike probabilities
+        - new_output.csv: Catcher-year aggregated framing metrics
+    """
     model_path = Path("framinng_model_prod.pkl")
     data_set_path = Path("new_data.csv")
     pitch_level_csv_path = Path("pitch_level_predictions.csv")
