@@ -238,7 +238,7 @@ def main():
         - new_output.csv: Catcher-year aggregated framing metrics
     """
     logger.info("Starting production scoring pipeline")
-    model_path = Path("framinng_model_prod.pkl")
+    model_path = Path("framing_model_prod.pkl")
     data_set_path = Path("new_data.csv")
     pitch_level_csv_path = Path("pitch_level_predictions.csv")
     catcher_csv_path = Path("new_output.csv")
